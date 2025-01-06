@@ -179,21 +179,31 @@ func containsSubstring(path string, exclude []string) bool {
 	return false
 }
 
+func isFlagPassed(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
+}
+
 func main() {
 	var directory string
 	var mode string
-	var noconfirm bool
 	var excludeParam string
 	fmt.Printf("CopyCure %v (written by Sammy Fischer)\n", version)
 	flag.StringVar(&directory, "i", "", "Directory to scan for duplicates")
 	flag.StringVar(&mode, "m", "sql", "Mode: 'sql' or 'mem'")
-	flag.BoolVar(&noconfirm, "y", true, "Delete files without asking")
+	_ = flag.Bool("y", false, "Delete files without asking")
 	flag.StringVar(&excludeParam, "e", "", "Comma separated list of partial filenames to exclude (e.g. -e .venv/,.git/)")
 	flag.Parse()
 	exclude := strings.Split(excludeParam, ",")
 
+	noconfirm := isFlagPassed("y")
 	if directory == "" {
-		fmt.Println("Usage: copycure -i /path/to/your/directory [-m sql|mem] [-c] [-v]\n" +
+		fmt.Println("Usage: copycure -i /path/to/your/directory [-m sql|mem] [-c] [-e aaa,bbb]\n" +
 			" -m : method to store known checksums\n" +
 			" -y : remove files without asking\n" +
 			" -e : comma separated list of partial filenames to exclude (e.g. -e .venv,.git )")
