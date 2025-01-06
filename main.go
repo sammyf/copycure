@@ -9,9 +9,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-var version = "1.0"
+var version = "1.1"
 
 func printOverwrite(message string) {
 	fmt.Printf("\r%s", message)
@@ -72,9 +73,33 @@ func countFiles(directory string) (int, error) {
 	})
 	return totalFiles, err
 }
+func deletePath(path string, noconfirm bool) (bool, error) {
+	var response string
+	deleted := false
+	var err error
+	if !noconfirm {
+		fmt.Printf("Do you want to delete %s? (y/n): ", path)
+		fmt.Scanln(&response)
+	} else {
+		response = "y"
+	}
+	if strings.ToLower(response) == "y" {
+		err = os.Remove(path)
+		if err != nil {
+			fmt.Println()
+			fmt.Printf("Failed to remove duplicate file %s: %v\n", path, err)
+		} else {
+			deleted = true
+		}
+	} else {
+		fmt.Printf("Skipped %s\n", path)
+	}
+	return deleted, err
+}
 
-func removeDuplicates(db *sql.DB, seenChecksums map[string]struct{}, directory string, allFiles int) (int, error) {
+func removeDuplicates(db *sql.DB, seenChecksums map[string]struct{}, directory string, allFiles int, noconfirm bool, exclude []string) (int, int, error) {
 	cnt := 0
+	dbl := 0
 	pct := 0
 	fileCnt := 0
 
@@ -84,7 +109,7 @@ func removeDuplicates(db *sql.DB, seenChecksums map[string]struct{}, directory s
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() {
+		if !info.IsDir() && !containsSubstring(path, exclude) {
 			fileCnt++
 			newPct := int(float64(fileCnt*100) / float64(allFiles))
 			if newPct > pct {
@@ -113,13 +138,11 @@ func removeDuplicates(db *sql.DB, seenChecksums map[string]struct{}, directory s
 					fmt.Printf("Failed to query database for file %s: %v\n", path, err)
 					return nil
 				} else {
-					err := os.Remove(path)
-					if err != nil {
-						fmt.Println()
-						fmt.Printf("Failed to remove duplicate file %s: %v\n", path, err)
-						return nil
+					deleted, _ := deletePath(path, noconfirm)
+					if deleted {
+						cnt++
 					}
-					cnt++
+					dbl++
 				}
 			} else if seenChecksums != nil {
 				if _, exists := seenChecksums[checksum]; exists {
@@ -140,23 +163,40 @@ func removeDuplicates(db *sql.DB, seenChecksums map[string]struct{}, directory s
 	})
 
 	if err != nil {
-		return cnt, err
+		return cnt, dbl, err
 	}
 
 	fmt.Println()
-	return cnt, nil
+	return cnt, dbl, nil
+}
+
+func containsSubstring(path string, exclude []string) bool {
+	for _, s := range exclude {
+		if strings.Contains(path, s) {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
 	var directory string
 	var mode string
+	var noconfirm bool
+	var excludeParam string
 	fmt.Printf("CopyCure %v (written by Sammy Fischer)\n", version)
 	flag.StringVar(&directory, "i", "", "Directory to scan for duplicates")
 	flag.StringVar(&mode, "m", "sql", "Mode: 'sql' or 'mem'")
+	flag.BoolVar(&noconfirm, "y", true, "Delete files without asking")
+	flag.StringVar(&excludeParam, "e", "", "Comma separated list of partial filenames to exclude (e.g. -e .venv/,.git/)")
 	flag.Parse()
+	exclude := strings.Split(excludeParam, ",")
 
 	if directory == "" {
-		fmt.Println("Usage: copycure -i /path/to/your/directory [-m sql|mem]")
+		fmt.Println("Usage: copycure -i /path/to/your/directory [-m sql|mem] [-c] [-v]\n" +
+			" -m : method to store known checksums\n" +
+			" -y : remove files without asking\n" +
+			" -e : comma separated list of partial filenames to exclude (e.g. -e .venv,.git )")
 		os.Exit(1)
 	}
 
@@ -185,11 +225,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	cnt, err := removeDuplicates(db, seenChecksums, directory, totalFiles)
+	cnt, dbl, err := removeDuplicates(db, seenChecksums, directory, totalFiles, noconfirm, exclude)
 	if err != nil {
 		fmt.Printf("Error removing duplicates: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("%d duplicate files were removed.\n", cnt)
+	fmt.Printf("%d duplicates found, %d files were removed.\n", dbl, cnt)
 }

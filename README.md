@@ -9,7 +9,7 @@ files. The comparison is done by computing a sha256 checksum
 #### Requirement
 You'll need to have go installed if you want to compile the tool. 
 
-#### Installation
+### Installation
 You can use the precompiled binaries in the release tab or ...
 
 1. Clone this repository:
@@ -25,14 +25,16 @@ You can use the precompiled binaries in the release tab or ...
     go build -o copycure main.go
     ```
    
-#### Usage
+### Usage
 ``` 
-    ./copycure -i /path/to/your/directory -m [-m sql|mem]                  
+    ./copycure -i /path/to/your/directory -m [-m sql|mem] [-y] [-e {csv}]                  
 ```
-replace DIRECTORY_PATH with the directory the tool should crawl through,
-and method with either `mem` or `sql`.
+__parameters__
 
-`-m mem` stores the checksums in memory, while `-m sql` uses a temporary SQLite database to store them.
-`-m sql` is default if you omit the flag.
+`-m mem` : stores the checksums in memory, while `-m sql` uses a temporary SQLite database to store them.
+`-m sql` : is default if you omit the flag.
 Which option is best for you depends a lot on the speed of your RAM and your drive in your system. 
 
+`-y` : do not ask for confirmation before deleting files
+`-e` : exclude any filepath containing any of the comma separated values. For example `-e .venv,.git,LICENSE.md` 
+would ignore anything whose path include .venv, .git or LICENSE.md
