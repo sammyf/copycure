@@ -16,7 +16,7 @@ func printOverwrite(message string) {
 }
 
 func initDB() (*sql.DB, error) {
-	dbPath := "/tmp/copycure.db"
+	dbPath := "./copycure.db"
 	err := os.Remove(dbPath)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
