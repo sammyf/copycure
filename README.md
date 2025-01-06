@@ -10,6 +10,8 @@ files. The comparison is done by computing a sha256 checksum
 You'll need to have go installed to compile the tool.
 
 #### Installation
+You can use the precompiled binaries in the release tab or ...
+
 1. Clone this repository:
     ```bash
     git clone https://github.com/yourusername/copycure.git
