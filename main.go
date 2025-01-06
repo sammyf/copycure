@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-var version = "1.1"
+var version = "1.1.1"
 
 func printOverwrite(message string) {
 	fmt.Printf("\r%s", message)
@@ -172,6 +172,9 @@ func removeDuplicates(db *sql.DB, seenChecksums map[string]struct{}, directory s
 
 func containsSubstring(path string, exclude []string) bool {
 	for _, s := range exclude {
+		if s == "" {
+			continue
+		}
 		if strings.Contains(path, s) {
 			return true
 		}
