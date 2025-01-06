@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 )
 
+var version = "1.0"
+
 func printOverwrite(message string) {
 	fmt.Printf("\r%s", message)
 }
@@ -148,13 +150,13 @@ func removeDuplicates(db *sql.DB, seenChecksums map[string]struct{}, directory s
 func main() {
 	var directory string
 	var mode string
-
+	fmt.Printf("CopyCure %v (written by Sammy Fischer)\n", version)
 	flag.StringVar(&directory, "i", "", "Directory to scan for duplicates")
 	flag.StringVar(&mode, "m", "sql", "Mode: 'sql' or 'mem'")
 	flag.Parse()
 
 	if directory == "" {
-		fmt.Println("Usage: go run script.go -i /path/to/your/directory [-m sql|mem]")
+		fmt.Println("Usage: copycure -i /path/to/your/directory [-m sql|mem]")
 		os.Exit(1)
 	}
 

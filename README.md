@@ -25,7 +25,7 @@ You'll need to have go installed to compile the tool.
    
 #### Usage
 ``` 
-    ./copycure -i DIRECTORY_PATH -m METHOD
+    ./copycure -i /path/to/your/directory -m [-m sql|mem]
 ```
 replace DIRECTORY_PATH with the directory the tool should crawl through,
 and method with either `mem` or `sql`.

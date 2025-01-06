@@ -1,1 +1,1 @@
-go build main.go -o copycure
+go build -o copycure main.go
