@@ -31,10 +31,8 @@ You can use the precompiled binaries in the release tab or ...
 ```
 __parameters__
 
-`-m mem` : stores the checksums in memory, while `-m sql` uses a temporary SQLite database to store them.
-`-m sql` : is default if you omit the flag.
+* `-m mem|sql` : stores the checksums either in RAM or in a temporary SQLite database. `-m sql` is default.
 Which option is best for you depends a lot on the speed of your RAM and your drive in your system. 
-
-`-y` : do not ask for confirmation before deleting files
-`-e` : exclude any filepath containing any of the comma separated values. For example `-e .venv,.git,LICENSE.md` 
+* `-y` : do not ask for confirmation before deleting files. ( asking is default)
+* `-e` : exclude any filepath containing any of the comma separated values. For example `-e .venv,.git,LICENSE.md` 
 would ignore anything whose path include .venv, .git or LICENSE.md
