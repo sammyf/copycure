@@ -7,7 +7,7 @@ subdirectories and tries to locate and remove duplicate
 files. The comparison is done by computing a sha256 checksum
 
 #### Requirement
-You'll need to have go installed to compile the tool.
+You'll need to have go installed if you want to compile the tool. 
 
 #### Installation
 You can use the precompiled binaries in the release tab or ...
