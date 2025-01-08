@@ -44,3 +44,5 @@ Which option is best for you depends a lot on the speed of your RAM and your dri
 would ignore anything whose path include .venv, .git or LICENSE.md
 * `-e` : do not ignore empty files when looking for duplicates (default is to ignore files with a size of 0 bytes)
 * `-l` : only list the duplicate found without deleting them. useful if you want to pipe the output somewhere. 
+
+<a href="https://www.buymeacoffee.com/socialnetwooky" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
