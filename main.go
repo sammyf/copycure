@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-var version = "1.1.1"
+var version = "1.2.1"
 
 func printOverwrite(message string) {
 	fmt.Printf("\r%s", message)
@@ -78,7 +78,7 @@ func deletePath(path string, noconfirm bool) (bool, error) {
 	deleted := false
 	var err error
 	if !noconfirm {
-		fmt.Printf("Do you want to delete %s? (y/n): ", path)
+		fmt.Printf("\nDo you want to delete %s? (y/n): ", path)
 		fmt.Scanln(&response)
 	} else {
 		response = "y"
@@ -97,22 +97,28 @@ func deletePath(path string, noconfirm bool) (bool, error) {
 	return deleted, err
 }
 
-func removeDuplicates(db *sql.DB, seenChecksums map[string]struct{}, directory string, allFiles int, noconfirm bool, exclude []string) (int, int, error) {
+func removeDuplicates(db *sql.DB, seenChecksums map[string]struct{}, directory string, allFiles int, noConfirm bool, exclude []string, deleteEmpty bool, listMode bool) (int, int, error) {
 	cnt := 0
 	dbl := 0
 	pct := 0
 	fileCnt := 0
+	if !listMode {
+		printOverwrite(fmt.Sprintf("%d/%d (%d%%) - %d files deleted ...", fileCnt, allFiles, pct, cnt))
+	}
 
-	printOverwrite(fmt.Sprintf("%d/%d (%d%%) - %d files deleted ...", fileCnt, allFiles, pct, cnt))
+	deleteSizeLimit := int64(10)
+	if deleteEmpty {
+		deleteSizeLimit = int64(-1)
+	}
 
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && !containsSubstring(path, exclude) {
+		if !info.IsDir() && !containsSubstring(path, exclude) && info.Size() > deleteSizeLimit {
 			fileCnt++
 			newPct := int(float64(fileCnt*100) / float64(allFiles))
-			if newPct > pct {
+			if newPct > pct && !listMode {
 				pct = newPct
 				printOverwrite(fmt.Sprintf("%d/%d (%d%%) - %d files deleted ...", fileCnt, allFiles, pct, cnt))
 			}
@@ -138,9 +144,13 @@ func removeDuplicates(db *sql.DB, seenChecksums map[string]struct{}, directory s
 					fmt.Printf("Failed to query database for file %s: %v\n", path, err)
 					return nil
 				} else {
-					deleted, _ := deletePath(path, noconfirm)
-					if deleted {
-						cnt++
+					if listMode {
+						fmt.Println(path)
+					} else {
+						deleted, _ := deletePath(path, noConfirm)
+						if deleted {
+							cnt++
+						}
 					}
 					dbl++
 				}
@@ -196,21 +206,32 @@ func main() {
 	var directory string
 	var mode string
 	var excludeParam string
-	fmt.Printf("CopyCure %v (written by Sammy Fischer)\n", version)
 	flag.StringVar(&directory, "i", "", "Directory to scan for duplicates")
 	flag.StringVar(&mode, "m", "sql", "Mode: 'sql' or 'mem'")
 	_ = flag.Bool("y", false, "Delete files without asking")
-	flag.StringVar(&excludeParam, "e", "", "Comma separated list of partial filenames to exclude (e.g. -e .venv/,.git/)")
+	_ = flag.Bool("e", false, "Delete empty files too. Empty files all look the same to copycure. The Default is to ignore them")
+	_ = flag.Bool("l", false, "List the duplicates instead of deleting them. -y is automatically assumed to be set")
+	flag.StringVar(&excludeParam, "x", "", "Comma separated list of partial filenames to exclude (e.g. -e .venv/,.git/)")
 	flag.Parse()
 	exclude := strings.Split(excludeParam, ",")
 
-	noconfirm := isFlagPassed("y")
+	noConfirm := isFlagPassed("y")
+	deleteEmpty := isFlagPassed("e")
+	listMode := isFlagPassed("l")
+
 	if directory == "" {
-		fmt.Println("Usage: copycure -i /path/to/your/directory [-m sql|mem] [-c] [-e aaa,bbb]\n" +
-			" -m : method to store known checksums\n" +
+		fmt.Printf("CopyCure %v (written by Sammy Fischer)\n", version)
+		fmt.Println("Usage: copycure -i /path/to/your/directory [-m sql|mem] [-y] [-x aaa,bbb] [-e] [-l]\n" +
+			" -m {sql|mem} : method to store known checksums. \n\tsql: use a temporary sqllite database  mem: store in and array in RAM\n" +
 			" -y : remove files without asking\n" +
-			" -e : comma separated list of partial filenames to exclude (e.g. -e .venv,.git )")
+			" -x {comma separated list} : exclude any file whose path contains one of the list values\n\t(e.g. -e .venv,.git ignores any path containing .venv or .git)}\n" +
+			" -e : remove duplicate empty files (size==0). Default is to ignore them.\n" +
+			" -l : only list the full path to the duplicates found without deleting them.\n")
 		os.Exit(1)
+	}
+
+	if !listMode {
+		fmt.Printf("CopyCure %v (written by Sammy Fischer)\n", version)
 	}
 
 	var db *sql.DB
@@ -238,11 +259,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	cnt, dbl, err := removeDuplicates(db, seenChecksums, directory, totalFiles, noconfirm, exclude)
+	cnt, dbl, err := removeDuplicates(db, seenChecksums, directory, totalFiles, noConfirm, exclude, deleteEmpty, listMode)
 	if err != nil {
 		fmt.Printf("Error removing duplicates: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("%d duplicates found, %d files were removed.\n", dbl, cnt)
+	if !listMode {
+		fmt.Printf("%d duplicates found, %d files were removed.\n", dbl, cnt)
+	}
 }
